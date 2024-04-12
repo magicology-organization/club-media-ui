@@ -1,0 +1,58 @@
+﻿@page "/fetch-news"
+
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Collections.Generic
+@using System.Threading.Tasks
+
+@inject HttpClient HttpClient
+
+@if (news == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var item in news)
+        {
+            <div class="col-lg-12 mb-4 container">
+                <div class="card flex-md-row mb-4 box-shadow h-md-250">
+                    <img src="@item.ImageLink" class="card-img-right flex-auto d-none d-lg-block" alt="@item.Title" style="width: 200px; height: auto;">
+                    <div class="card-body d-flex flex-column align-items-start">
+                        <h5 class="card-title font-weight-bold">@item.Title</h5>
+                        <p class="card-text">@item.ShortDescription</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+}
+
+@code {
+    private List<NewsItem> news;
+
+    private class NewsRespond
+    {
+        public List<NewsItem> news { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await HttpClient.GetAsync("https://club-media-api.vercel.app/api/news/all");
+        response.EnsureSuccessStatusCode();
+        var responseObject = await response.Content.ReadFromJsonAsync<NewsRespond>(); // Deserialize the response object
+        news = responseObject?.news; // Extract the news item from the response
+    }
+
+    public class NewsItem
+    {
+        public int NewsID { get; set; }
+        public string Title { get; set; }
+        public string ShortDescription { get; set; }
+        public string ImageLink { get; set; }
+        // You can include other properties here if needed
+    }
+}

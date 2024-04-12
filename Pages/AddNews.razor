@@ -1,0 +1,121 @@
+﻿@page "/add-news"
+@using System.Net.Http
+@using System.Net.Http.Headers
+@using System.Threading.Tasks
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Post News</PageTitle>
+
+@if (!isLoggedIn)
+{
+    <p>You need to log in to access this page.</p>
+}
+
+else
+{
+    <div class="container-fluid d-flex justify-content-center">
+        <img src="https://lith-vov-bucket.s3.amazonaws.com/kafka_post.png" class="img-fluid mb-4" style="width:400px" alt="Kafka Poster">
+    </div>
+    <div class="text-center container">
+        <h1 class="display-4 mb-3">
+            Insert a news below
+        </h1>
+    </div>
+    <EditForm Model="@newsModel" OnValidSubmit="@PostNews">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <InputText id="title" class="form-control" @bind-Value="@newsModel.Title" />
+        </div>
+        <div class="form-group">
+            <label for="content">Content</label>
+            <InputTextArea id="content" class="form-control" @bind-Value="@newsModel.Content" />
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <InputTextArea id="description" class="form-control" @bind-Value="@newsModel.Description" />
+        </div>
+        <div class="form-group">
+            <label for="categoryID">Category ID</label>
+            <InputNumber id="categoryID" class="form-control" @bind-Value="@newsModel.CategoryID" />
+        </div>
+        <div class="form-group">
+            <label for="image">Image</label>
+            <InputFile id="image" class="form-control" OnChange="@HandleFileSelected"
+                       MaxFileSize="1024 * 1024 * 10" />
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </EditForm>
+}
+
+@if (errorMessage != null)
+{
+    <p class="text-danger">@errorMessage</p>
+}
+
+@code {
+    private class NewsModel
+    {
+        public string Title { get; set; }
+        public string Content { get; set; }
+        public string Description { get; set; }
+        public int CategoryID { get; set; }
+        public IBrowserFile Image { get; set; }
+    }
+
+    private NewsModel newsModel = new NewsModel();
+    private bool isLoggedIn;
+    private string token;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        token = await JS.InvokeAsync<string>("localStorage.getItem", "token");
+        isLoggedIn = !string.IsNullOrEmpty(token);
+    }
+
+    private async Task PostNews()
+    {
+        if (string.IsNullOrEmpty(token))
+        {
+            errorMessage = "User not logged in.";
+            return;
+        }
+
+        var formData = new MultipartFormDataContent();
+        formData.Add(new StringContent(newsModel.Title), "title");
+        formData.Add(new StringContent(newsModel.Content), "content");
+        formData.Add(new StringContent(newsModel.Description), "description");
+        formData.Add(new StringContent(newsModel.CategoryID.ToString()), "categoryID");
+
+        if (newsModel.Image != null)
+        {
+            var imageContent = new StreamContent(newsModel.Image.OpenReadStream(20000000));
+            formData.Add(imageContent, "image", newsModel.Image.Name);
+        }
+
+        Http.DefaultRequestHeaders.Add("Authorization", token);
+
+        var response = await Http.PostAsync("https://club-media-api.vercel.app/api/news/post-news", formData);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            errorMessage = "Failed to post news. Please try again later.";
+        }
+        else
+        {
+            await DisplayAlert("Adding news successful!", "alert-success");
+        }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        newsModel.Image = e.File;
+    }
+    private async Task DisplayAlert(string message, string alertClass)
+    {
+        // JavaScript alert to display the message
+        await JS.InvokeVoidAsync("alert", message);
+    }
+}

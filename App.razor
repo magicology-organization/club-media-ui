@@ -6,7 +6,17 @@
     <NotFound>
         <PageTitle>Not found</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+            <div class="container-fluid d-flex align-items-center justify-content-center vh-100">
+                <div class="text-center">
+                    <img src="https://lith-vov-bucket.s3.amazonaws.com/notFound.jpg" alt="Not Found" class="img-fluid mb-4" style="width:400px" />
+                    <h1 class="display-4 mb-3">
+                        Sorry, we couldn't find the page you're looking for.
+                    </h1>
+                    <p class="lead">
+                        It seems that the page you are trying to access does not exist.
+                    </p>
+                </div>
+            </div>
         </LayoutView>
     </NotFound>
 </Router>
